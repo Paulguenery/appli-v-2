@@ -1,0 +1,65 @@
+name: Déploiement automatique des nouvelles fonctionnalités
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_deploy:
+        description: 'Confirmez-vous le déploiement des nouvelles fonctionnalités?'
+        required: true
+        default: 'oui'
+        type: choice
+        options:
+          - 'oui'
+          - 'non'
+
+jobs:
+  deploy:
+    if: ${{ github.event.inputs.confirm_deploy == 'oui' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install nanoid framer-motion @radix-ui/react-dialog
+
+      - name: Create directories if they don't exist
+        run: |
+          mkdir -p project/src/components/swipe
+          mkdir -p project/src/components/auth
+          mkdir -p project/src/components/search
+          mkdir -p project/src/lib
+          mkdir -p project/src/hooks
+          mkdir -p project/src/__tests__
+
+      - name: Download and extract deployment package
+        run: |
+          curl -L -o deploy.zip https://raw.githubusercontent.com/Paulguenery/appli-v-2/deploy-assets/deploy.zip
+          unzip -o deploy.zip
+
+      - name: Copy files to appropriate locations
+        run: |
+          cp -f deploy/SwipeCard.tsx project/src/components/swipe/
+          cp -f deploy/ProjectDetailModal.tsx project/src/components/swipe/
+          cp -f deploy/UpgradePopup.tsx project/src/components/
+          cp -f deploy/GoogleSignIn.tsx project/src/components/auth/
+          cp -f deploy/LoginForm.tsx project/src/components/auth/
+          cp -f deploy/LocationFilter.tsx project/src/components/search/
+          cp -f deploy/AutoModerationService.ts project/src/lib/
+          cp -f deploy/ParrainageSystem.ts project/src/lib/
+          cp -f deploy/SecurityService.ts project/src/lib/
+          cp -f deploy/SecurityMiddleware.ts project/src/lib/
+          cp -f deploy/use-subscription.ts project/src/hooks/
+          cp -f deploy/components.test.tsx project/src/__tests__/
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add .
+          git commit -m "Ajout des nouvelles fonctionnalités: SwipeCard responsive, ProfileDetailModal, UpgradePopup, AutoModeration et Parrainage"
+          git push
